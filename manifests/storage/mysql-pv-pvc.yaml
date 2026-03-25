@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce # 支持单个节点挂载为读写模式
+  resources:
+    requests:
+      storage: 1Gi  # 向集群宣告需要 1GB 的存储空间

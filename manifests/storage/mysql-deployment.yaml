@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate # 数据库 Deployment 通常需要等旧 Pod 释放存储挂载后再起新 Pod
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:8.0
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: my-secret-pw # 为了方便演示直接写明文，真实生产应从之前学过的 Secret 获取！
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage # 将容器下的 volume 映射到对应名字的 PVC 上
+          mountPath: /var/lib/mysql      # MySQL 将数据存在这里，我们将此目录外挂出来
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim      # 指定我们刚才创建的 PVC 的名字

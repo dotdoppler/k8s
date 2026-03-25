@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-service-deployment
+  labels:
+    app: demo-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo-service
+  template:
+    metadata:
+      labels:
+        app: demo-service
+    spec:
+      containers:
+      - name: demo-service
+        image: dev/demo-service:v3 # 升级到整合了 Actuator 的 v3 镜像
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: demo-service-config
+            optional: true
+        
+        # 1. JVM 与容器相关的资源调优约束
+        resources:
+          requests:
+            memory: "512Mi" # 声明下限，调度器以此为依据寻找 Node
+            cpu: "500m"     # 0.5 核
+          limits:
+            memory: "1Gi"   # 容器运行时决不可超过 1G 内存，因为 Java 17 容器支持，JVM 会自动限制在这个水准之下 (-XX:MaxRAMPercentage)
+            cpu: "1000m"    # 1 核
+
+        # 2. 存活探针 (判断系统是否死锁僵死，如多次失败则 kubelet 会杀掉该容器)
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 15 # 启动 15 秒后再开始第一次拨测检查
+          periodSeconds: 10       # 每 10 秒去探一下
+          timeoutSeconds: 3       # 接口超过 3 秒没回响应就算探针失败一次
+          failureThreshold: 3     # 连续失败 3 次就重启容器
+
+        # 3. 就绪探针 (判断系统是否能对外接客，未通过则不会将该 Pod IP 加进 Service 的负载均衡路由表)
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1     # 只要 1 次成功就可以接流量了
+          failureThreshold: 3     # 连续 3 次失败摘除流量
