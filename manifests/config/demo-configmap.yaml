@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-service-config
+data:
+  # Spring Boot 松散绑定：这里的 APP_MESSAGE 环境变量会被解析为 app.message 属性
+  APP_MESSAGE: "🚀 Hello from Kubernetes ConfigMap (Version 2)!😈"

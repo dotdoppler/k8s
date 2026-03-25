@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-service-deployment
+  labels:
+    app: demo-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: demo-service
+  template:
+    metadata:
+      labels:
+        app: demo-service
+    spec:
+      containers:
+      - name: demo-service
+        image: dev/demo-service:v1
+        imagePullPolicy: Never # 告诉 K8s 优先使用本地机器的镜像，不去 DockerHub 拉取
+        ports:
+        - containerPort: 8080
